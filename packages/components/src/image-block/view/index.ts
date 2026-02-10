@@ -17,6 +17,8 @@ export const imageBlockView = $view(
       const src = ref(initialNode.attrs.src)
       const caption = ref(initialNode.attrs.caption)
       const ratio = ref(initialNode.attrs.ratio)
+      const width = ref(initialNode.attrs.width)
+      const height = ref(initialNode.attrs.height)
       const selected = ref(false)
       const readonly = ref(!view.editable)
       const setAttr = (attr: string, value: unknown) => {
@@ -39,6 +41,8 @@ export const imageBlockView = $view(
         selected,
         readonly,
         setAttr,
+        initialWidth: width,
+        initialHeight: height,
         config,
       })
       const dom = document.createElement('div')
@@ -69,7 +73,8 @@ export const imageBlockView = $view(
         }
         ratio.value = node.attrs.ratio
         caption.value = node.attrs.caption
-
+        width.value = node.attrs.width
+        height.value = node.attrs.height
         readonly.value = !view.editable
       }
 

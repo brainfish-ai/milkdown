@@ -4,6 +4,7 @@ import { $remark } from '@milkdown/utils'
 import { visit } from 'unist-util-visit'
 
 import { withMeta } from '../__internal__/meta'
+import { parseSizeFromTitle } from './schema'
 
 function visitImage(ast: Node) {
   return visit(
@@ -23,11 +24,14 @@ function visitImage(ast: Node) {
         alt: string
         title: string
       }
+      const { width, height, cleanTitle } = parseSizeFromTitle(title)
       const newNode = {
         type: 'image-block',
         url,
         alt,
-        title,
+        title: cleanTitle,
+        width,
+        height,
       }
 
       parent.children.splice(index, 1, newNode)

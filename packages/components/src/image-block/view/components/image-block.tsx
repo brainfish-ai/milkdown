@@ -12,6 +12,8 @@ type Attrs = {
   src: string
   caption: string
   ratio: number
+  width?: number
+  height?: number
 }
 
 export type MilkdownImageBlockProps = {
@@ -19,6 +21,8 @@ export type MilkdownImageBlockProps = {
   readonly: Ref<boolean>
   setAttr: <T extends keyof Attrs>(attr: T, value: Attrs[T]) => void
   config: ImageBlockConfig
+  initialWidth?: Ref<number | undefined>
+  initialHeight?: Ref<number | undefined>
 } & {
   [P in keyof Attrs]: Ref<Attrs[P] | undefined>
 }
@@ -48,6 +52,14 @@ export const MilkdownImageBlock = defineComponent<MilkdownImageBlockProps>({
     setAttr: {
       type: Function,
       required: true,
+    },
+    initialWidth: {
+      type: Object,
+      required: false,
+    },
+    initialHeight: {
+      type: Object,
+      required: false,
     },
     config: {
       type: Object,
