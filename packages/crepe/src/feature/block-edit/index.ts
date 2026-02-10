@@ -15,6 +15,10 @@ interface BlockEditConfig {
   handleDragIcon: string
   buildMenu: (builder: GroupBuilder<SlashMenuItem>) => void
 
+  blockConfig?: {
+    mousemoveThrottle?: number
+  }
+
   blockHandle: Pick<
     BlockProviderOptions,
     | 'shouldShow'
