@@ -34,16 +34,35 @@ export const ImageViewer = defineComponent<MilkdownImageBlockProps>({
       type: Function,
       required: true,
     },
+    initialWidth: {
+      type: Object,
+      required: false,
+    },
+    initialHeight: {
+      type: Object,
+      required: false,
+    },
     config: {
       type: Object,
       required: true,
     },
   },
-  setup({ src, caption, ratio, readonly, setAttr, config }) {
+  setup({
+    src,
+    caption,
+    ratio,
+    readonly,
+    setAttr,
+    config,
+    initialWidth,
+    initialHeight,
+  }) {
     const imageRef = ref<HTMLImageElement>()
     const resizeHandle = ref<HTMLDivElement>()
     const showCaption = ref(Boolean(caption.value?.length))
     const timer = ref(0)
+    const naturalWidth = ref<number>()
+    const naturalHeight = ref<number>()
 
     const onImageLoad = () => {
       const image = imageRef.value
@@ -56,6 +75,19 @@ export const ImageViewer = defineComponent<MilkdownImageBlockProps>({
 
       const height = image.height
       const width = image.width
+      if (!naturalWidth.value && !naturalHeight.value) {
+        naturalWidth.value = image.naturalWidth
+        naturalHeight.value = image.naturalHeight
+      }
+      const existingWidth = initialWidth?.value
+      const existingHeight = initialHeight?.value
+      if (!existingWidth && !existingHeight) {
+        const currentRatio = ratio.value ?? 1
+        const scaledWidth = Math.round(image.naturalWidth * currentRatio)
+        const scaledHeight = Math.round(image.naturalHeight * currentRatio)
+        setAttr('width', scaledWidth)
+        setAttr('height', scaledHeight)
+      }
       const transformedHeight =
         width < maxWidth ? height : maxWidth * (height / width)
       const h = (transformedHeight * (ratio.value ?? 1)).toFixed(2)
@@ -118,6 +150,12 @@ export const ImageViewer = defineComponent<MilkdownImageBlockProps>({
       if (Number.isNaN(ratio)) return
 
       setAttr('ratio', ratio)
+      if (naturalWidth.value != null && naturalHeight.value != null) {
+        const scaledWidth = Math.round(naturalWidth.value * ratio)
+        const scaledHeight = Math.round(naturalHeight.value * ratio)
+        setAttr('width', scaledWidth)
+        setAttr('height', scaledHeight)
+      }
     }
 
     const onResizeHandlePointerDown = (e: PointerEvent) => {
