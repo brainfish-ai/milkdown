@@ -1,7 +1,7 @@
 {
   "name": "@milkdown/plugin-highlight",
   "type": "module",
-  "version": "7.18.0",
+  "version": "7.19.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -68,7 +68,7 @@
     "@milkdown/core": "workspace:*",
     "@milkdown/ctx": "workspace:*",
     "@milkdown/utils": "workspace:*",
-    "prosemirror-highlight": "^0.13.0"
+    "prosemirror-highlight": "^0.15.0"
   },
   "devDependencies": {
     "@milkdown/preset-commonmark": "workspace:*",

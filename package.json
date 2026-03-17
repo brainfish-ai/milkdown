@@ -2,7 +2,7 @@
   "name": "@milkdown/monorepo",
   "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@10.32.0",
   "engines": {
     "node": ">=22"
   },
@@ -50,7 +50,7 @@
     "@vitejs/plugin-vue-jsx": "^5.0.0",
     "autoprefixer": "^10.2.5",
     "esbuild": "^0.27.0",
-    "eslint": "^9.24.0",
+    "eslint": "^10.0.0",
     "eslint-plugin-perfectionist": "^5.0.0",
     "git-cz": "^4.7.6",
     "husky": "^9.0.10",
@@ -58,7 +58,7 @@
     "knip": "^5.63.1",
     "lint-staged": "^16.0.0",
     "oxlint": "^1.8.0",
-    "pkg-pr-new": "^0.0.63",
+    "pkg-pr-new": "^0.0.65",
     "postcss": "^8.4.38",
     "postcss-cli": "^11.0.0",
     "postcss-nested": "^7.0.0",
