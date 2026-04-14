@@ -3,8 +3,9 @@ import { defineComponent, ref, watchEffect, type Ref, h, Fragment } from 'vue'
 
 import type { CodeBlockProps } from './code-block'
 
-h
-Fragment
+import { keepAlive } from '../../../__internal__/keep-alive'
+
+keepAlive(h, Fragment)
 
 type PreviewPanelProps = Pick<
   CodeBlockProps,

@@ -5,7 +5,16 @@ import { nord } from '@uiw/codemirror-theme-nord'
 
 import type { Args } from './setup'
 
-import { longContent, setup, wikiContent } from './setup'
+import {
+  hideDiffArgs,
+  longContent,
+  modifiedLongContent,
+  setup,
+  setupDiffReview,
+  setupAIDemo,
+  setupStreamingDemo,
+  wikiContent,
+} from './setup'
 
 const meta: Meta = {
   title: 'Crepe/Nord Dark',
@@ -25,7 +34,11 @@ const defaultArgs: Omit<Args, 'instance'> = {
   readonly: false,
   defaultValue: '',
   enableCodemirror: true,
+  enableTopBar: false,
   language: 'EN',
+  modifiedValue: '',
+  enableDiff: false,
+  enableStreaming: false,
 }
 
 export const Empty: Story = {
@@ -36,6 +49,7 @@ export const Empty: Story = {
       theme: nord,
     })
   },
+  argTypes: hideDiffArgs,
   args: {
     ...defaultArgs,
   },
@@ -54,5 +68,39 @@ export const WikiValue: Story = {
   args: {
     ...defaultArgs,
     defaultValue: wikiContent,
+  },
+}
+
+export const DiffReview: Story = {
+  render: (args) => {
+    return setupDiffReview({ args, style: nordDark, theme: nord })
+  },
+  args: {
+    ...defaultArgs,
+    defaultValue: longContent,
+    modifiedValue: modifiedLongContent,
+    enableDiff: true,
+  },
+}
+
+export const StreamingDemo: Story = {
+  render: (args) => {
+    return setupStreamingDemo({ args, style: nordDark, theme: nord })
+  },
+  args: {
+    ...defaultArgs,
+    enableStreaming: true,
+  },
+}
+
+export const AIDemo: Story = {
+  render: (args) => {
+    return setupAIDemo({ args, style: nordDark, theme: nord })
+  },
+  args: {
+    ...defaultArgs,
+    defaultValue: longContent,
+    enableStreaming: true,
+    enableDiff: true,
   },
 }

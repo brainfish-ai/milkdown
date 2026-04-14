@@ -2,6 +2,20 @@ import type { Extension } from '@codemirror/state'
 
 import { Crepe } from '@milkdown/crepe'
 import all from '@milkdown/crepe/theme/common/style.css?inline'
+import { commandsCtx } from '@milkdown/kit/core'
+import {
+  acceptAllDiffsCmd,
+  clearDiffReviewCmd,
+  rejectAllDiffsCmd,
+  startDiffReviewCmd,
+} from '@milkdown/kit/plugin/diff'
+import {
+  abortStreamingCmd,
+  endStreamingCmd,
+  pushChunkCmd,
+  startStreamingCmd,
+} from '@milkdown/kit/plugin/streaming'
+import { callCommand } from '@milkdown/kit/utils'
 
 import { injectMarkdown, wrapInShadow } from '../utils/shadow'
 import localStyle from './style.css?inline'
@@ -10,8 +24,18 @@ export interface Args {
   instance: Crepe
   readonly: boolean
   defaultValue: string
+  modifiedValue: string
   enableCodemirror: boolean
+  enableTopBar: boolean
+  enableDiff: boolean
+  enableStreaming: boolean
   language: 'EN' | 'JA'
+}
+
+export const hideDiffArgs = {
+  modifiedValue: { table: { disable: true } },
+  enableDiff: { table: { disable: true } },
+  enableStreaming: { table: { disable: true } },
 }
 
 interface setupConfig {
@@ -36,6 +60,9 @@ export function setup({ args, style, theme }: setupConfig) {
     defaultValue: args.defaultValue,
     features: {
       [Crepe.Feature.CodeMirror]: args.enableCodemirror,
+      [Crepe.Feature.TopBar]: args.enableTopBar,
+      [Crepe.Feature.Diff]: args.enableDiff,
+      [Crepe.Feature.Streaming]: args.enableStreaming,
     },
     featureConfigs: {
       [Crepe.Feature.LinkTooltip]: {
@@ -155,6 +182,548 @@ export function setup({ args, style, theme }: setupConfig) {
   return root
 }
 
+const diffToolbarStyle = `
+.diff-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.diff-toolbar button {
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid;
+  font-weight: 500;
+}
+.diff-toolbar-apply { background: #3b82f6; color: white; border-color: #2563eb; }
+.diff-toolbar-apply:hover { background: #2563eb; }
+.diff-toolbar-accept-all { background: #22c55e; color: white; border-color: #16a34a; }
+.diff-toolbar-accept-all:hover { background: #16a34a; }
+.diff-toolbar-reject-all { background: #ef4444; color: white; border-color: #dc2626; }
+.diff-toolbar-reject-all:hover { background: #dc2626; }
+.diff-toolbar-clear { background: #e5e7eb; color: #374151; border-color: #d1d5db; }
+.diff-toolbar-clear:hover { background: #d1d5db; }
+`
+
+export function setupDiffReview(config: setupConfig) {
+  const root = setup(config)
+  const shadow = root.shadowRoot!
+
+  const styleEl = document.createElement('style')
+  styleEl.textContent = diffToolbarStyle
+  shadow.appendChild(styleEl)
+
+  const toolbar = document.createElement('div')
+  toolbar.classList.add('diff-toolbar')
+
+  const buttons = [
+    { text: 'Apply Diff', cls: 'diff-toolbar-apply' },
+    { text: 'Accept All', cls: 'diff-toolbar-accept-all' },
+    { text: 'Reject All', cls: 'diff-toolbar-reject-all' },
+    { text: 'Clear', cls: 'diff-toolbar-clear' },
+  ]
+  const btnElements = buttons.map(({ text, cls }) => {
+    const btn = document.createElement('button')
+    btn.textContent = text
+    btn.classList.add(cls)
+    toolbar.appendChild(btn)
+    return btn
+  })
+  const [applyBtn, acceptAllBtn, rejectAllBtn, clearBtn] = btnElements
+
+  waitForInstance(config.args, 5000)
+    .then((crepe) => {
+      const crepeWrapper = shadow.querySelector('.milkdown') as HTMLElement
+      if (crepeWrapper) {
+        crepeWrapper.parentElement!.insertBefore(toolbar, crepeWrapper)
+      } else {
+        shadow.insertBefore(toolbar, shadow.firstChild)
+      }
+
+      applyBtn!.addEventListener('click', () => {
+        crepe.editor.action((ctx) => {
+          ctx
+            .get(commandsCtx)
+            .call(startDiffReviewCmd.key, config.args.modifiedValue)
+        })
+      })
+      acceptAllBtn!.addEventListener('click', () => {
+        crepe.editor.action(callCommand(acceptAllDiffsCmd.key))
+      })
+      rejectAllBtn!.addEventListener('click', () => {
+        crepe.editor.action(callCommand(rejectAllDiffsCmd.key))
+      })
+      clearBtn!.addEventListener('click', () => {
+        crepe.editor.action(callCommand(clearDiffReviewCmd.key))
+      })
+    })
+    .catch(console.error)
+
+  return root
+}
+
+const streamingToolbarStyle = `
+.streaming-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.streaming-toolbar button {
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid;
+  font-weight: 500;
+}
+.streaming-toolbar-start { background: #3b82f6; color: white; border-color: #2563eb; }
+.streaming-toolbar-start:hover { background: #2563eb; }
+.streaming-toolbar-start:disabled { background: #93c5fd; border-color: #93c5fd; cursor: not-allowed; }
+.streaming-toolbar-stop { background: #22c55e; color: white; border-color: #16a34a; }
+.streaming-toolbar-stop:hover { background: #16a34a; }
+.streaming-toolbar-stop:disabled { background: #86efac; border-color: #86efac; cursor: not-allowed; }
+.streaming-toolbar-abort { background: #ef4444; color: white; border-color: #dc2626; }
+.streaming-toolbar-abort:hover { background: #dc2626; }
+.streaming-toolbar-abort:disabled { background: #fca5a5; border-color: #fca5a5; cursor: not-allowed; }
+`
+
+const sampleStreamContent = `# Streaming Demo
+
+This content is being streamed **token by token**, simulating an AI generating markdown in real-time.
+
+## Features
+
+The streaming plugin supports:
+
+- Progressive rendering of headings
+- Paragraphs with **bold** and *italic* formatting
+- Lists with multiple items
+- Code blocks with syntax highlighting
+
+\`\`\`typescript
+const editor = new Crepe({
+  root: '#app',
+  features: {
+    [Crepe.Feature.Streaming]: true,
+  },
+})
+await editor.create()
+\`\`\`
+
+## How It Works
+
+The plugin accumulates tokens in a buffer, periodically parses the full markdown, diffs it against the current document, and applies only the changes. This gives a smooth, progressive rendering experience.
+
+> The quick brown fox jumps over the lazy dog.
+> This is a famous pangram used in typography.
+
+| Feature | Status |
+| ------- | ------ |
+| Headings | Done |
+| Lists | Done |
+| Code | Done |
+| Tables | Done |
+
+That's the end of the streaming demo!
+`
+
+export function setupStreamingDemo(config: setupConfig) {
+  const root = setup(config)
+  const shadow = root.shadowRoot!
+
+  const styleEl = document.createElement('style')
+  styleEl.textContent = `${streamingToolbarStyle}
+.streaming-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.streaming-controls textarea {
+  width: 100%;
+  min-height: 80px;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  resize: vertical;
+}
+`
+  shadow.appendChild(styleEl)
+
+  const controls = document.createElement('div')
+  controls.classList.add('streaming-controls')
+
+  const textarea = document.createElement('textarea')
+  textarea.value = sampleStreamContent
+  textarea.placeholder = 'Enter markdown to stream...'
+
+  const toolbar = document.createElement('div')
+  toolbar.classList.add('streaming-toolbar')
+
+  const startBtn = document.createElement('button')
+  startBtn.textContent = 'Start Streaming'
+  startBtn.classList.add('streaming-toolbar-start')
+
+  const stopBtn = document.createElement('button')
+  stopBtn.textContent = 'End Streaming'
+  stopBtn.classList.add('streaming-toolbar-stop')
+  stopBtn.disabled = true
+
+  const abortBtn = document.createElement('button')
+  abortBtn.textContent = 'Abort'
+  abortBtn.classList.add('streaming-toolbar-abort')
+  abortBtn.disabled = true
+
+  toolbar.appendChild(startBtn)
+  toolbar.appendChild(stopBtn)
+  toolbar.appendChild(abortBtn)
+
+  controls.appendChild(textarea)
+  controls.appendChild(toolbar)
+
+  waitForInstance(config.args, 5000)
+    .then((crepe) => {
+      const crepeWrapper = shadow.querySelector('.milkdown') as HTMLElement
+      if (crepeWrapper) {
+        crepeWrapper.parentElement!.insertBefore(controls, crepeWrapper)
+      } else {
+        shadow.insertBefore(controls, shadow.firstChild)
+      }
+
+      let streamTimer: ReturnType<typeof setInterval> | null = null
+
+      function setStreaming(active: boolean) {
+        startBtn.disabled = active
+        stopBtn.disabled = !active
+        abortBtn.disabled = !active
+        textarea.disabled = active
+      }
+
+      function stopTimer() {
+        if (streamTimer) {
+          clearInterval(streamTimer)
+          streamTimer = null
+        }
+      }
+
+      startBtn.addEventListener('click', () => {
+        crepe.editor.action(callCommand(startStreamingCmd.key))
+        setStreaming(true)
+
+        const chars = Array.from(textarea.value)
+        let idx = 0
+
+        streamTimer = setInterval(() => {
+          const chunkSize = Math.floor(Math.random() * 3) + 1
+          let chunk = ''
+          for (let j = 0; j < chunkSize && idx < chars.length; j++, idx++) {
+            chunk += chars[idx]
+          }
+
+          if (chunk) {
+            crepe.editor.action(callCommand(pushChunkCmd.key, chunk))
+          }
+
+          if (idx >= chars.length) {
+            stopTimer()
+            crepe.editor.action(callCommand(endStreamingCmd.key))
+            setStreaming(false)
+          }
+        }, 30)
+      })
+
+      stopBtn.addEventListener('click', () => {
+        stopTimer()
+        crepe.editor.action(callCommand(endStreamingCmd.key))
+        setStreaming(false)
+      })
+
+      abortBtn.addEventListener('click', () => {
+        stopTimer()
+        crepe.editor.action(callCommand(abortStreamingCmd.key, { keep: false }))
+        setStreaming(false)
+      })
+    })
+    .catch(console.error)
+
+  return root
+}
+
+const aiDemoToolbarStyle = `
+.ai-demo-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.ai-demo-controls textarea {
+  width: 100%;
+  min-height: 80px;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  resize: vertical;
+}
+.ai-demo-options {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 13px;
+  color: #374151;
+}
+.ai-demo-options label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.ai-demo-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ai-demo-toolbar button {
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid;
+  font-weight: 500;
+}
+.ai-demo-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ai-btn-start { background: #3b82f6; color: white; border-color: #2563eb; }
+.ai-btn-start:hover:not(:disabled) { background: #2563eb; }
+.ai-btn-stop, .ai-btn-accept { background: #22c55e; color: white; border-color: #16a34a; }
+.ai-btn-stop:hover:not(:disabled), .ai-btn-accept:hover:not(:disabled) { background: #16a34a; }
+.ai-btn-abort, .ai-btn-reject { background: #ef4444; color: white; border-color: #dc2626; }
+.ai-btn-abort:hover:not(:disabled), .ai-btn-reject:hover:not(:disabled) { background: #dc2626; }
+.ai-btn-clear { background: #e5e7eb; color: #374151; border-color: #d1d5db; }
+.ai-btn-clear:hover:not(:disabled) { background: #d1d5db; }
+.ai-separator {
+  width: 1px;
+  height: 24px;
+  background: #d1d5db;
+  margin: 0 4px;
+}
+`
+
+const aiSampleContent = `## AI Generated Section
+
+Here is a summary of the key points:
+
+- **First point**: The architecture uses a plugin-based approach
+- **Second point**: Streaming content is buffered and flushed periodically
+- **Third point**: Diff review allows accepting or rejecting changes
+
+\`\`\`typescript
+const editor = new Crepe({
+  root: '#app',
+  features: {
+    [Crepe.Feature.Streaming]: true,
+    [Crepe.Feature.Diff]: true,
+  },
+})
+\`\`\`
+
+This content was generated by an AI assistant and inserted at the cursor position.
+`
+
+export function setupAIDemo(config: setupConfig) {
+  const root = setup(config)
+  const shadow = root.shadowRoot!
+
+  const styleEl = document.createElement('style')
+  styleEl.textContent = aiDemoToolbarStyle
+  shadow.appendChild(styleEl)
+
+  const controls = document.createElement('div')
+  controls.classList.add('ai-demo-controls')
+
+  const textarea = document.createElement('textarea')
+  textarea.value = aiSampleContent
+  textarea.placeholder = 'Enter markdown to stream...'
+
+  const options = document.createElement('div')
+  options.classList.add('ai-demo-options')
+
+  const insertLabel = document.createElement('label')
+  const insertCheckbox = document.createElement('input')
+  insertCheckbox.type = 'checkbox'
+  insertCheckbox.checked = true
+  insertLabel.appendChild(insertCheckbox)
+  insertLabel.appendChild(document.createTextNode('Insert at cursor'))
+
+  const diffLabel = document.createElement('label')
+  const diffCheckbox = document.createElement('input')
+  diffCheckbox.type = 'checkbox'
+  diffCheckbox.checked = true
+  diffLabel.appendChild(diffCheckbox)
+  diffLabel.appendChild(document.createTextNode('Diff review after streaming'))
+
+  options.appendChild(insertLabel)
+  options.appendChild(diffLabel)
+
+  const toolbar = document.createElement('div')
+  toolbar.classList.add('ai-demo-toolbar')
+
+  function createBtn(text: string, cls: string, disabled = false) {
+    const btn = document.createElement('button')
+    btn.textContent = text
+    btn.classList.add(cls)
+    btn.disabled = disabled
+    toolbar.appendChild(btn)
+    return btn
+  }
+
+  const startBtn = createBtn('Start Streaming', 'ai-btn-start')
+  const stopBtn = createBtn('End Streaming', 'ai-btn-stop', true)
+  const abortBtn = createBtn('Abort', 'ai-btn-abort', true)
+
+  const sep = document.createElement('div')
+  sep.classList.add('ai-separator')
+  toolbar.appendChild(sep)
+
+  const acceptBtn = createBtn('Accept All', 'ai-btn-accept', true)
+  const rejectBtn = createBtn('Reject All', 'ai-btn-reject', true)
+  const clearBtn = createBtn('Clear Diff', 'ai-btn-clear', true)
+
+  controls.appendChild(textarea)
+  controls.appendChild(options)
+  controls.appendChild(toolbar)
+
+  waitForInstance(config.args, 5000)
+    .then((crepe) => {
+      const crepeWrapper = shadow.querySelector('.milkdown') as HTMLElement
+      if (crepeWrapper) {
+        crepeWrapper.parentElement!.insertBefore(controls, crepeWrapper)
+      } else {
+        shadow.insertBefore(controls, shadow.firstChild)
+      }
+
+      let streamTimer: ReturnType<typeof setInterval> | null = null
+
+      function setStreaming(active: boolean) {
+        startBtn.disabled = active
+        stopBtn.disabled = !active
+        abortBtn.disabled = !active
+        textarea.disabled = active
+        insertCheckbox.disabled = active
+        diffCheckbox.disabled = active
+      }
+
+      function setDiffReview(active: boolean) {
+        acceptBtn.disabled = !active
+        rejectBtn.disabled = !active
+        clearBtn.disabled = !active
+      }
+
+      function stopTimer() {
+        if (streamTimer) {
+          clearInterval(streamTimer)
+          streamTimer = null
+        }
+      }
+
+      startBtn.addEventListener('click', () => {
+        const insertAtCursor = insertCheckbox.checked
+        crepe.editor.action((ctx) => {
+          const cmds = ctx.get(commandsCtx)
+          cmds.call(
+            startStreamingCmd.key,
+            insertAtCursor ? { insertAt: 'cursor' as const } : undefined
+          )
+        })
+        setStreaming(true)
+
+        const chars = Array.from(textarea.value)
+        let idx = 0
+
+        streamTimer = setInterval(() => {
+          const chunkSize = Math.floor(Math.random() * 3) + 1
+          let chunk = ''
+          for (let j = 0; j < chunkSize && idx < chars.length; j++, idx++) {
+            chunk += chars[idx]
+          }
+
+          if (chunk) {
+            crepe.editor.action(callCommand(pushChunkCmd.key, chunk))
+          }
+
+          if (idx >= chars.length) {
+            stopTimer()
+            const diffReview = diffCheckbox.checked
+            crepe.editor.action(
+              callCommand(endStreamingCmd.key, { diffReview })
+            )
+            setStreaming(false)
+            if (diffReview) setDiffReview(true)
+          }
+        }, 30)
+      })
+
+      stopBtn.addEventListener('click', () => {
+        stopTimer()
+        const diffReview = diffCheckbox.checked
+        crepe.editor.action(callCommand(endStreamingCmd.key, { diffReview }))
+        setStreaming(false)
+        if (diffReview) setDiffReview(true)
+      })
+
+      abortBtn.addEventListener('click', () => {
+        stopTimer()
+        crepe.editor.action(callCommand(abortStreamingCmd.key, { keep: false }))
+        setStreaming(false)
+      })
+
+      acceptBtn.addEventListener('click', () => {
+        crepe.editor.action(callCommand(acceptAllDiffsCmd.key))
+        setDiffReview(false)
+      })
+
+      rejectBtn.addEventListener('click', () => {
+        crepe.editor.action(callCommand(rejectAllDiffsCmd.key))
+        setDiffReview(false)
+      })
+
+      clearBtn.addEventListener('click', () => {
+        crepe.editor.action(callCommand(clearDiffReviewCmd.key))
+        setDiffReview(false)
+      })
+    })
+    .catch(console.error)
+
+  return root
+}
+
+function waitForInstance(args: Args, timeoutMs: number): Promise<Crepe> {
+  return new Promise((resolve, reject) => {
+    let cancelled = false
+    const timeoutId = setTimeout(() => {
+      cancelled = true
+      reject(new Error(`Crepe instance not ready after ${timeoutMs}ms`))
+    }, timeoutMs)
+
+    const check = () => {
+      if (cancelled) return
+      if (args.instance) {
+        clearTimeout(timeoutId)
+        resolve(args.instance)
+      } else {
+        requestAnimationFrame(check)
+      }
+    }
+    requestAnimationFrame(check)
+  })
+}
+
 export const longContent = `
 # Heading 1
 ## Heading 2
@@ -199,6 +768,12 @@ const crepe = new Crepe({
 > Caught in a \`landslide\`,
 >
 > No escape from [reality](https://en.wikipedia.org/wiki/Bohemian_Rhapsody).
+
+The equation $E=mc^2$ describes mass-energy equivalence.
+
+$$
+\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}
+$$
 
 Open your eyes, look up to the skies and see.
 
@@ -246,4 +821,75 @@ Pink Floyd were founded in 1965 by [Syd Barrett](https://en.wikipedia.org/wiki/
 * *[A Momentary Lapse of Reason](https://en.wikipedia.org/wiki/A_Momentary_Lapse_of_Reason "A Momentary Lapse of Reason")* (1987)
 * *[The Division Bell](https://en.wikipedia.org/wiki/The_Division_Bell "The Division Bell")* (1994)
 * *[The Endless River](https://en.wikipedia.org/wiki/The_Endless_River "The Endless River")* (2014)
+`
+
+export const modifiedLongContent = `
+# Heading 1 Modified
+## Heading 2
+### Heading 3 Updated
+#### Heading 4
+##### Heading 5
+
+![1.0](https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png)
+
+![0.5](/milkdown-logo.png)
+
+\`\`\`typescript
+const crepe = new Crepe({
+  root: '#editor',
+  defaultValue: 'Hello World',
+})
+crepe.create()
+\`\`\`
+
+* List Item 1
+* List Item 2 Updated
+    * List Item 3
+    * List Item 4
+    * List Item 5 (new)
+* List Item 5
+* List Item 6
+
+1. List Item 1
+2. List Item 2
+    1. List Item 1
+    2. List Item 2
+    3. List Item 3 (new)
+3. List Item 3
+
+* [ ] List Item 1
+* [x] List Item 2 (completed)
+    * [x] List Item 1
+    * [x] List Item 2
+* [ ] List Item 3
+* [ ] List Item 4 (new task)
+
+> Is this the **real life**?
+>
+> Is this just *fantasy*?
+>
+> Caught in a \`landslide\`,
+>
+> No escape from [reality](https://en.wikipedia.org/wiki/Bohemian_Rhapsody).
+>
+> Any way the **wind** blows.
+
+The equation $E=mc^3$ describes mass-energy equivalence with a twist.
+
+$$
+\\sum_{i=1}^{n} i^2 = \\frac{n(n+1)(2n+1)}{6}
+$$
+
+Open your eyes, look up to the skies and see. You are not alone in this world.
+
+| Fruit | Animal | Vegetable | Color |
+| ----- | :----: | --------: | ----- |
+|   🍎 | 🐱  | 🥕 | Red |
+|   🍌 | 🐶  | 🥦 | Yellow |
+|   🍒 | 🐎  | 🎃 | Red |
+|   🍇 | 🐰  | 🥬 | Purple |
+
+## New Section
+
+This is a brand new section added at the end of the document.
 `

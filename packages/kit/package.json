@@ -1,21 +1,26 @@
 {
   "name": "@milkdown/kit",
-  "type": "module",
-  "version": "7.19.0",
+  "version": "7.20.0",
+  "keywords": [
+    "WYSIWYG",
+    "editor",
+    "markdown",
+    "milkdown",
+    "milkdown plugin"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Milkdown/milkdown.git",
     "directory": "packages/milkdown"
   },
-  "keywords": [
-    "milkdown",
-    "milkdown plugin",
-    "markdown",
-    "WYSIWYG",
-    "editor"
+  "files": [
+    "lib",
+    "src"
   ],
+  "type": "module",
   "sideEffects": false,
+  "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
     "./core": "./src/core.ts",
@@ -51,18 +56,18 @@
     "./plugin/tooltip": "./src/plugin/tooltip.ts",
     "./plugin/trailing": "./src/plugin/trailing.ts",
     "./plugin/upload": "./src/plugin/upload.ts",
+    "./plugin/diff": "./src/plugin/diff.ts",
+    "./plugin/streaming": "./src/plugin/streaming.ts",
     "./component": "./src/component/index.ts",
     "./component/code-block": "./src/component/code-block.ts",
     "./component/image-block": "./src/component/image-block.ts",
     "./component/image-inline": "./src/component/image-inline.ts",
     "./component/link-tooltip": "./src/component/link-tooltip.ts",
     "./component/list-item-block": "./src/component/list-item-block.ts",
-    "./component/table-block": "./src/component/table-block.ts"
+    "./component/table-block": "./src/component/table-block.ts",
+    "./component/diff": "./src/component/diff.ts"
   },
-  "main": "./src/index.ts",
   "publishConfig": {
-    "main": "./lib/index.js",
-    "types": "./lib/index.d.ts",
     "exports": {
       ".": {
         "import": "./lib/index.js",
@@ -191,6 +196,14 @@
         "types": "./lib/plugin/upload.d.ts",
         "import": "./lib/plugin/upload.js"
       },
+      "./plugin/diff": {
+        "types": "./lib/plugin/diff.d.ts",
+        "import": "./lib/plugin/diff.js"
+      },
+      "./plugin/streaming": {
+        "types": "./lib/plugin/streaming.d.ts",
+        "import": "./lib/plugin/streaming.js"
+      },
       "./component": {
         "types": "./lib/component/index.d.ts",
         "import": "./lib/component/index.js"
@@ -218,8 +231,14 @@
       "./component/table-block": {
         "types": "./lib/component/table-block.d.ts",
         "import": "./lib/component/table-block.js"
+      },
+      "./component/diff": {
+        "types": "./lib/component/diff.d.ts",
+        "import": "./lib/component/diff.js"
       }
     },
+    "main": "./lib/index.js",
+    "types": "./lib/index.d.ts",
     "typesVersions": {
       "*": {
         ".": [
@@ -335,14 +354,19 @@
         ],
         "component/table-block": [
           "lib/component/table-block.d.ts"
+        ],
+        "plugin/diff": [
+          "lib/plugin/diff.d.ts"
+        ],
+        "plugin/streaming": [
+          "lib/plugin/streaming.d.ts"
+        ],
+        "component/diff": [
+          "lib/component/diff.d.ts"
         ]
       }
     }
   },
-  "files": [
-    "lib",
-    "src"
-  ],
   "scripts": {
     "build": "postcss src --base src --dir lib"
   },
@@ -353,10 +377,12 @@
     "@milkdown/plugin-block": "workspace:*",
     "@milkdown/plugin-clipboard": "workspace:*",
     "@milkdown/plugin-cursor": "workspace:*",
+    "@milkdown/plugin-diff": "workspace:*",
     "@milkdown/plugin-history": "workspace:*",
     "@milkdown/plugin-indent": "workspace:*",
     "@milkdown/plugin-listener": "workspace:*",
     "@milkdown/plugin-slash": "workspace:*",
+    "@milkdown/plugin-streaming": "workspace:*",
     "@milkdown/plugin-tooltip": "workspace:*",
     "@milkdown/plugin-trailing": "workspace:*",
     "@milkdown/plugin-upload": "workspace:*",

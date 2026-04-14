@@ -1,36 +1,36 @@
 {
   "name": "@milkdown/theme-nord",
-  "type": "module",
-  "version": "7.19.0",
+  "version": "7.20.0",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Milkdown/milkdown.git",
     "directory": "packages/plugins/utils"
   },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "type": "module",
   "sideEffects": false,
+  "main": "./src/index.ts",
   "exports": {
     ".": {
       "import": "./src/index.ts"
     },
     "./style.css": "./src/style.css"
   },
-  "main": "./src/index.ts",
   "publishConfig": {
-    "main": "./lib/index.js",
-    "types": "./lib/index.d.ts",
     "exports": {
       ".": {
         "types": "./lib/index.d.ts",
         "import": "./lib/index.js"
       },
       "./style.css": "./lib/style.css"
-    }
+    },
+    "main": "./lib/index.js",
+    "types": "./lib/index.d.ts"
   },
-  "files": [
-    "lib",
-    "src"
-  ],
   "scripts": {
     "build": "vite build"
   },

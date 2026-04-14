@@ -1,5 +1,67 @@
 # @milkdown/vue
 
+## 7.20.0
+
+### Minor Changes
+
+- e137982: Milkdown minor version release.
+
+  ## Feat
+  - feat: add support for top bar (#2300)
+  - feat(crepe): integrate upload plugin in crepe (#2301)
+  - feat(image-block): add maxWidth and maxHeight config options (#2291)
+
+  ## Fix
+  - fix(preset-commonmark): ordered list label ignores start attribute (#2302)
+  - fix(prose): fix Enter key in lists on Chrome Android (#2293)
+  - fix(preset-commonmark): preserve ordered list custom start number (#2292)
+
+  ## Refactor
+  - refactor: fix some useless checks (#2298)
+  - refactor: use a meaningful function to explain why we need h and fragment (#2297)
+
+  ## Ci
+  - ci: remove eslint (#2290)
+
+### Patch Changes
+
+- Updated dependencies [e137982]
+  - @milkdown/crepe@7.20.0
+  - @milkdown/kit@7.20.0
+
+## 7.19.2
+
+### Patch Changes
+
+- 39f9064: Milkdown patch version release.
+
+  ## Fix
+  - fix(plugin-clipboard, preset-gfm): fix pasting multiple tables from Google Docs (#2286)
+
+- Updated dependencies [39f9064]
+  - @milkdown/crepe@7.19.2
+  - @milkdown/kit@7.19.2
+
+## 7.19.1
+
+### Patch Changes
+
+- b22143f: Milkdown patch version release.
+
+  ## Fix
+  - fix(preset-gfm): incorrect table parsing when pasting from Google Docs (#2283)
+  - fix(transformer): inline code with bold/italic marks produces wrong markdown (#2281)
+  - fix(preset-gfm): add empty content guard to table_header_row serializer (#2279)
+  - fix(plugin-listener): listener bug regards to debounce in react (#2268)
+
+  ## Chore
+  - chore: bump up sugar-high version to v1 (#2280)
+  - chore: bump up dompurify version to v3.3.2 [SECURITY] (#2267)
+
+- Updated dependencies [b22143f]
+  - @milkdown/crepe@7.19.1
+  - @milkdown/kit@7.19.1
+
 ## 7.19.0
 
 ### Minor Changes

@@ -5,7 +5,16 @@ import { basicDark } from '@uiw/codemirror-theme-basic'
 
 import type { Args } from './setup'
 
-import { longContent, setup, wikiContent } from './setup'
+import {
+  hideDiffArgs,
+  longContent,
+  modifiedLongContent,
+  setup,
+  setupDiffReview,
+  setupAIDemo,
+  setupStreamingDemo,
+  wikiContent,
+} from './setup'
 
 const meta: Meta = {
   title: 'Crepe/Frame Dark',
@@ -25,7 +34,11 @@ const defaultArgs: Omit<Args, 'instance'> = {
   readonly: false,
   defaultValue: '',
   enableCodemirror: true,
+  enableTopBar: false,
   language: 'EN',
+  modifiedValue: '',
+  enableDiff: false,
+  enableStreaming: false,
 }
 
 export const Empty: Story = {
@@ -36,6 +49,7 @@ export const Empty: Story = {
       theme: basicDark,
     })
   },
+  argTypes: hideDiffArgs,
   args: {
     ...defaultArgs,
   },
@@ -54,5 +68,39 @@ export const WikiValue: Story = {
   args: {
     ...defaultArgs,
     defaultValue: wikiContent,
+  },
+}
+
+export const DiffReview: Story = {
+  render: (args) => {
+    return setupDiffReview({ args, style: frameDark, theme: basicDark })
+  },
+  args: {
+    ...defaultArgs,
+    defaultValue: longContent,
+    modifiedValue: modifiedLongContent,
+    enableDiff: true,
+  },
+}
+
+export const StreamingDemo: Story = {
+  render: (args) => {
+    return setupStreamingDemo({ args, style: frameDark, theme: basicDark })
+  },
+  args: {
+    ...defaultArgs,
+    enableStreaming: true,
+  },
+}
+
+export const AIDemo: Story = {
+  render: (args) => {
+    return setupAIDemo({ args, style: frameDark, theme: basicDark })
+  },
+  args: {
+    ...defaultArgs,
+    defaultValue: longContent,
+    enableStreaming: true,
+    enableDiff: true,
   },
 }

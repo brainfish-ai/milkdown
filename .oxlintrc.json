@@ -1,5 +1,9 @@
 {
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "plugins": ["import", "typescript", "unicorn", "promise"],
+  "options": {
+    "typeAware": true
+  },
   "rules": {
     "no-console": ["error", { "allow": ["warn", "error"] }],
     "for-direction": "error",
@@ -111,6 +115,8 @@
         "allowDeclarations": true
       }
     ],
-    "typescript/no-unnecessary-type-constraint": "error"
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/restrict-template-expressions": "off",
+    "typescript/no-base-to-string": "off"
   }
 }
